@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="ur" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>اردو ڈکٹیشن ایپ - Urdu Dictation App</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Jameel Noori Nastaleeq', 'Noto Nastaliq Urdu', 'Alvi Nastaleeq', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            direction: rtl;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            padding: 30px;
+        }
+
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 30px;
+            justify-content: center;
+        }
+
+        .btn {
+            padding: 15px 30px;
+            font-size: 1.1rem;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-family: inherit;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-record {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn-record.recording {
+            background: #ef4444;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .btn-stop {
+            background: #f59e0b;
+            color: white;
+        }
+
+        .btn-reset {
+            background: #6366f1;
+            color: white;
+        }
+
+        .btn-copy {
+            background: #8b5cf6;
+            color: white;
+        }
+
+        .btn-save {
+            background: #0ea5e9;
+            color: white;
+        }
+
+        .btn-email {
+            background: #ec4899;
+            color: white;
+        }
+
+        .btn-history {
+            background: #64748b;
+            color: white;
+        }
+
+        .status {
+            text-align: center;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 10px;
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+
+        .status.listening {
+            background: #dcfce7;
+            color: #166534;
+            border: 2px solid #10b981;
+        }
+
+        .status.idle {
+            background: #f1f5f9;
+            color: #475569;
+            border: 2px solid #cbd5e1;
+        }
+
+        .text-area {
+            width: 100%;
+            min-height: 400px;
+            padding: 25px;
+            font-size: 1.5rem;
+            line-height: 2.5;
+            border: 3px solid #e2e8f0;
+            border-radius: 15px;
+            resize: vertical;
+            font-family: inherit;
+            direction: rtl;
+            background: #fafafa;
+        }
+
+        .text-area:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .word-count {
+            text-align: center;
+            margin-top: 15px;
+            font-size: 1rem;
+            color: #64748b;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .modal-header h2 {
+            font-size: 1.8rem;
+            color: #1e293b;
+        }
+
+        .close-btn {
+            background: #ef4444;
+            color: white;
+            border: none;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .email-form {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .email-form input {
+            padding: 12px;
+            font-size: 1rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            direction: ltr;
+        }
+
+        .email-form input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .history-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .history-item {
+            padding: 15px;
+            background: #f8fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .history-item:hover {
+            background: #f1f5f9;
+            border-color: #667eea;
+        }
+
+        .history-item-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 0.9rem;
+            color: #64748b;
+        }
+
+        .history-item-text {
+            font-size: 1.1rem;
+            line-height: 1.8;
+            max-height: 100px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .empty-history {
+            text-align: center;
+            padding: 40px;
+            color: #94a3b8;
+            font-size: 1.2rem;
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #10b981;
+            color: white;
+            padding: 15px 30px;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            z-index: 2000;
+            display: none;
+            font-size: 1.1rem;
+            font-weight: bold;
+        }
+
+        .notification.show {
+            display: block;
+            animation: slideDown 0.3s ease;
+        }
+
+        @keyframes slideDown {
+            from {
+                transform: translateX(-50%) translateY(-100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(-50%) translateY(0);
+                opacity: 1;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.8rem;
+            }
+
+            .controls {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .text-area {
+                font-size: 1.2rem;
+                min-height: 300px;
+            }
+        }
+
+        .icon {
+            width: 20px;
+            height: 20px;
+        }
+
+        .browser-support {
+            background: #fef3c7;
+            border: 2px solid #f59e0b;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+            color: #92400e;
+        }
+    </style>
+</head>
+<body>
+    <div class="notification" id="notification"></div>
+
+    <div class="container">
+        <div class="header">
+            <h1>🎤 اردو ڈکٹیشن ایپ</h1>
+            <p>آواز سے اردو تحریر میں تبدیل کریں</p>
+        </div>
+
+        <div class="main-content">
+            <div id="browserSupport" class="browser-support" style="display: none;">
+                ⚠️ براہ کرم Chrome، Edge یا Safari براؤزر استعمال کریں۔ یہ ایپ آپ کے براؤزر میں کام نہیں کرتی۔
+            </div>
+
+            <div class="status idle" id="status">
+                تیار ہے - مائیک بٹن دبائیں
+            </div>
+
+            <div class="controls">
+                <button class="btn btn-record" id="recordBtn">
+                    <span>🎤</span>
+                    <span>شروع کریں</span>
+                </button>
+                <button class="btn btn-stop" id="stopBtn" style="display: none;">
+                    <span>⏸️</span>
+                    <span>روکیں</span>
+                </button>
+                <button class="btn btn-copy" id="copyBtn">
+                    <span>📋</span>
+                    <span>کاپی کریں</span>
+                </button>
+                <button class="btn btn-save" id="saveBtn">
+                    <span>💾</span>
+                    <span>محفوظ کریں</span>
+                </button>
+                <button class="btn btn-email" id="emailBtn">
+                    <span>📧</span>
+                    <span>ای میل کریں</span>
+                </button>
+                <button class="btn btn-reset" id="resetBtn">
+                    <span>🔄</span>
+                    <span>نیا سیشن</span>
+                </button>
+                <button class="btn btn-history" id="historyBtn">
+                    <span>📜</span>
+                    <span>سابقہ تحریریں</span>
+                </button>
+            </div>
+
+            <textarea 
+                class="text-area" 
+                id="textArea" 
+                placeholder="یہاں آپ کی آواز کی تحریر ظاہر ہوگی... آپ اسے ترمیم بھی کر سکتے ہیں"
+            ></textarea>
+
+            <div class="word-count" id="wordCount">
+                الفاظ: 0 | حروف: 0
+            </div>
+        </div>
+    </div>
+
+    <!-- Email Modal -->
+    <div class="modal" id="emailModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>ای میل بھیجیں</h2>
+                <button class="close-btn" onclick="closeEmailModal()">×</button>
+            </div>
+            <form class="email-form" id="emailForm">
+                <input 
+                    type="email" 
+                    id="emailInput" 
+                    placeholder="ای میل ایڈریس درج کریں (example@email.com)" 
+                    required
+                    dir="ltr"
+                >
+                <button type="submit" class="btn btn-email" style="width: 100%;">
+                    <span>📧</span>
+                    <span>بھیجیں</span>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- History Modal -->
+    <div class="modal" id="historyModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>سابقہ تحریریں</h2>
+                <button class="close-btn" onclick="closeHistoryModal()">×</button>
+            </div>
+            <div class="history-list" id="historyList">
+                <div class="empty-history">ابھی تک کوئی تحریر محفوظ نہیں</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Browser and Feature Detection
+        function detectBrowser() {
+            const userAgent = navigator.userAgent;
+            if (userAgent.indexOf("Chrome") > -1 && userAgent.indexOf("Edg") === -1) return "Chrome";
+            if (userAgent.indexOf("Safari") > -1 && userAgent.indexOf("Chrome") === -1) return "Safari";
+            if (userAgent.indexOf("Edg") > -1) return "Edge";
+            if (userAgent.indexOf("Firefox") > -1) return "Firefox";
+            return "Other";
+        }
+
+        const browserName = detectBrowser();
+        
+        // Speech Recognition Setup
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        
+        if (!SpeechRecognition) {
+            document.getElementById('browserSupport').style.display = 'block';
+            document.getElementById('browserSupport').innerHTML = `
+                ⚠️ <strong>یہ براؤزر اردو آواز کی شناخت کو سپورٹ نہیں کرتا</strong><br><br>
+                براہ کرم <strong>Google Chrome</strong> استعمال کریں (تجویز کردہ)<br>
+                <a href="https://www.google.com/chrome/" target="_blank" style="color: #2563eb; text-decoration: underline;">Chrome ڈاؤن لوڈ کریں</a>
+            `;
+            document.querySelectorAll('.btn').forEach(btn => btn.disabled = true);
+        } else if (browserName === "Safari" || browserName === "Edge") {
+            document.getElementById('browserSupport').style.display = 'block';
+            document.getElementById('browserSupport').innerHTML = `
+                ⚠️ <strong>${browserName} میں اردو آواز کی شناخت محدود ہے</strong><br><br>
+                بہترین نتائج کے لیے <strong>Google Chrome</strong> استعمال کریں<br>
+                <a href="https://www.google.com/chrome/" target="_blank" style="color: #2563eb; text-decoration: underline;">Chrome ڈاؤن لوڈ کریں</a>
+            `;
+        }
+
+        const recognition = SpeechRecognition ? new SpeechRecognition() : null;
+        
+        if (recognition) {
+            recognition.lang = 'ur-PK'; // Urdu (Pakistan)
+            recognition.continuous = true;
+            recognition.interimResults = true;
+            recognition.maxAlternatives = 1;
+        }
+
+        // Elements
+        const recordBtn = document.getElementById('recordBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const textArea = document.getElementById('textArea');
+        const status = document.getElementById('status');
+        const copyBtn = document.getElementById('copyBtn');
+        const saveBtn = document.getElementById('saveBtn');
+        const emailBtn = document.getElementById('emailBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const historyBtn = document.getElementById('historyBtn');
+        const wordCount = document.getElementById('wordCount');
+
+        // State
+        let isRecording = false;
+        let finalTranscript = '';
+        let history = JSON.parse(localStorage.getItem('urduDictationHistory')) || [];
+
+        // Update word count
+        function updateWordCount() {
+            const text = textArea.value.trim();
+            const words = text ? text.split(/\s+/).length : 0;
+            const chars = text.length;
+            wordCount.textContent = `الفاظ: ${words} | حروف: ${chars}`;
+        }
+
+        textArea.addEventListener('input', updateWordCount);
+
+        // Start Recording
+        recordBtn.addEventListener('click', () => {
+            if (!recognition) return;
+            
+            isRecording = true;
+            recordBtn.classList.add('recording');
+            recordBtn.innerHTML = '<span>🔴</span><span>سن رہا ہوں...</span>';
+            stopBtn.style.display = 'flex';
+            status.className = 'status listening';
+            status.textContent = '🎤 سن رہا ہوں... بولیں';
+            
+            finalTranscript = textArea.value;
+            recognition.start();
+        });
+
+        // Stop Recording
+        stopBtn.addEventListener('click', () => {
+            if (!recognition) return;
+            
+            isRecording = false;
+            recordBtn.classList.remove('recording');
+            recordBtn.innerHTML = '<span>🎤</span><span>شروع کریں</span>';
+            stopBtn.style.display = 'none';
+            status.className = 'status idle';
+            status.textContent = 'رک گیا - دوبارہ شروع کرنے کے لیے مائیک دبائیں';
+            
+            recognition.stop();
+        });
+
+        // Speech Recognition Events
+        if (recognition) {
+            recognition.onresult = (event) => {
+                let interimTranscript = '';
+                
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    const transcript = event.results[i][0].transcript;
+                    
+                    if (event.results[i].isFinal) {
+                        finalTranscript += transcript + ' ';
+                    } else {
+                        interimTranscript += transcript;
+                    }
+                }
+                
+                textArea.value = finalTranscript + interimTranscript;
+                updateWordCount();
+                
+                // Auto-scroll to bottom
+                textArea.scrollTop = textArea.scrollHeight;
+            };
+
+            recognition.onerror = (event) => {
+                console.error('Speech recognition error:', event.error);
+                
+                let errorMessage = '';
+                let statusMessage = '';
+                
+                if (event.error === 'not-allowed') {
+                    errorMessage = `🚫 مائیکروفون تک رسائی مسترد ہو گئی
+                    
+براہ کرم:
+1. براؤزر سیٹنگز میں مائیکروفون کی اجازت دیں
+2. صفحہ refresh کریں
+3. Chrome استعمال کریں (${browserName} میں مسائل ہو سکتے ہیں)`;
+                    statusMessage = 'خرابی: مائیکروفون کی اجازت نہیں';
+                    
+                    // Show detailed help
+                    document.getElementById('browserSupport').style.display = 'block';
+                    document.getElementById('browserSupport').innerHTML = `
+                        ⚠️ <strong>مائیکروفون تک رسائی کی اجازت درکار ہے</strong><br><br>
+                        <strong>اگر آپ ${browserName} استعمال کر رہے ہیں:</strong><br>
+                        ${browserName === 'Chrome' ? '1. ایڈریس بار میں تالے کے آئیکن پر کلک کریں<br>2. Microphone کو "Allow" میں تبدیل کریں<br>3. صفحہ refresh کریں' : ''}
+                        ${browserName === 'Safari' ? '1. Safari → Settings → Websites → Microphone<br>2. اس ویب سائٹ کو "Allow" دیں<br>3. صفحہ refresh کریں<br><br>یا <a href="https://www.google.com/chrome/" target="_blank" style="color: #2563eb;">Chrome استعمال کریں</a>' : ''}
+                        ${browserName === 'Edge' ? '1. ایڈریس بار میں تالے پر کلک کریں<br>2. Microphone permissions چیک کریں<br>3. صفحہ refresh کریں<br><br>یا <a href="https://www.google.com/chrome/" target="_blank" style="color: #2563eb;">Chrome استعمال کریں</a>' : ''}
+                    `;
+                } else if (event.error === 'no-speech') {
+                    errorMessage = 'کوئی آواز نہیں سنی گئی - دوبارہ کوشش کریں';
+                    statusMessage = 'کوئی آواز نہیں';
+                } else if (event.error === 'audio-capture') {
+                    errorMessage = 'مائیکروفون کام نہیں کر رہا';
+                    statusMessage = 'خرابی: مائیکروفون';
+                } else if (event.error === 'network') {
+                    errorMessage = 'نیٹ ورک کی خرابی - انٹرنیٹ چیک کریں';
+                    statusMessage = 'خرابی: نیٹ ورک';
+                } else if (event.error === 'language-not-supported') {
+                    errorMessage = `اردو زبان سپورٹ نہیں ہے
+                    
+${browserName} میں اردو دستیاب نہیں ہے۔
+Chrome استعمال کریں۔`;
+                    statusMessage = 'خرابی: زبان سپورٹ نہیں';
+                    
+                    document.getElementById('browserSupport').style.display = 'block';
+                    document.getElementById('browserSupport').innerHTML = `
+                        ⚠️ <strong>${browserName} اردو زبان کو سپورٹ نہیں کرتا</strong><br><br>
+                        <a href="https://www.google.com/chrome/" target="_blank" style="color: #2563eb; text-decoration: underline;">
+                            Google Chrome ڈاؤن لوڈ کریں - صرف Chrome میں اردو کام کرتی ہے
+                        </a>
+                    `;
+                } else {
+                    errorMessage = 'خرابی: ' + event.error;
+                    statusMessage = 'خرابی: ' + event.error;
+                }
+                
+                showNotification(errorMessage, 'error');
+                status.className = 'status error';
+                status.textContent = statusMessage;
+                
+                stopBtn.click();
+            };
+
+            recognition.onend = () => {
+                if (isRecording) {
+                    // Restart if still recording
+                    recognition.start();
+                }
+            };
+        }
+
+        // Copy to Clipboard
+        copyBtn.addEventListener('click', async () => {
+            if (!textArea.value.trim()) {
+                showNotification('کاپی کرنے کے لیے کچھ نہیں ہے', 'warning');
+                return;
+            }
+            
+            try {
+                await navigator.clipboard.writeText(textArea.value);
+                showNotification('✅ کاپی ہو گیا!', 'success');
+            } catch (err) {
+                showNotification('کاپی نہیں ہو سکا', 'error');
+            }
+        });
+
+        // Save as File
+        saveBtn.addEventListener('click', () => {
+            if (!textArea.value.trim()) {
+                showNotification('محفوظ کرنے کے لیے کچھ نہیں ہے', 'warning');
+                return;
+            }
+            
+            const text = textArea.value;
+            const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            const date = new Date().toLocaleDateString('ur-PK');
+            const time = new Date().toLocaleTimeString('ur-PK');
+            
+            a.href = url;
+            a.download = `urdu-dictation-${Date.now()}.txt`;
+            a.click();
+            
+            URL.revokeObjectURL(url);
+            showNotification('✅ فائل محفوظ ہو گئی!', 'success');
+        });
+
+        // Email Modal
+        emailBtn.addEventListener('click', () => {
+            if (!textArea.value.trim()) {
+                showNotification('بھیجنے کے لیے کچھ نہیں ہے', 'warning');
+                return;
+            }
+            document.getElementById('emailModal').classList.add('active');
+        });
+
+        function closeEmailModal() {
+            document.getElementById('emailModal').classList.remove('active');
+        }
+
+        document.getElementById('emailForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const email = document.getElementById('emailInput').value;
+            const text = textArea.value;
+            
+            // Create mailto link
+            const subject = encodeURIComponent('اردو ڈکٹیشن - Urdu Dictation');
+            const body = encodeURIComponent(text);
+            const mailtoLink = `mailto:${email}?subject=${subject}&body=${body}`;
+            
+            window.location.href = mailtoLink;
+            
+            showNotification('✅ ای میل کلائنٹ کھل رہا ہے...', 'success');
+            closeEmailModal();
+        });
+
+        // Reset Session
+        resetBtn.addEventListener('click', () => {
+            if (!textArea.value.trim()) {
+                showNotification('صاف کرنے کے لیے کچھ نہیں ہے', 'warning');
+                return;
+            }
+            
+            if (confirm('کیا آپ اس تحریر کو تاریخ میں محفوظ کرنا چاہتے ہیں؟')) {
+                // Save to history
+                const historyItem = {
+                    id: Date.now(),
+                    text: textArea.value,
+                    date: new Date().toLocaleDateString('ur-PK'),
+                    time: new Date().toLocaleTimeString('ur-PK'),
+                    wordCount: textArea.value.trim().split(/\s+/).length
+                };
+                
+                history.unshift(historyItem);
+                
+                // Keep only last 50 items
+                if (history.length > 50) {
+                    history = history.slice(0, 50);
+                }
+                
+                localStorage.setItem('urduDictationHistory', JSON.stringify(history));
+                showNotification('✅ تحریر محفوظ ہو گئی!', 'success');
+            }
+            
+            // Reset
+            textArea.value = '';
+            finalTranscript = '';
+            updateWordCount();
+            status.className = 'status idle';
+            status.textContent = 'تیار ہے - مائیک بٹن دبائیں';
+        });
+
+        // History Modal
+        historyBtn.addEventListener('click', () => {
+            showHistory();
+            document.getElementById('historyModal').classList.add('active');
+        });
+
+        function closeHistoryModal() {
+            document.getElementById('historyModal').classList.remove('active');
+        }
+
+        function showHistory() {
+            const historyList = document.getElementById('historyList');
+            
+            if (history.length === 0) {
+                historyList.innerHTML = '<div class="empty-history">ابھی تک کوئی تحریر محفوظ نہیں</div>';
+                return;
+            }
+            
+            historyList.innerHTML = history.map(item => `
+                <div class="history-item" onclick="loadHistoryItem(${item.id})">
+                    <div class="history-item-header">
+                        <span>📅 ${item.date} - ⏰ ${item.time}</span>
+                        <span>الفاظ: ${item.wordCount}</span>
+                    </div>
+                    <div class="history-item-text">${item.text}</div>
+                </div>
+            `).join('');
+        }
+
+        function loadHistoryItem(id) {
+            const item = history.find(h => h.id === id);
+            if (item) {
+                textArea.value = item.text;
+                finalTranscript = item.text;
+                updateWordCount();
+                closeHistoryModal();
+                showNotification('✅ تحریر لوڈ ہو گئی!', 'success');
+            }
+        }
+
+        // Notification System
+        function showNotification(message, type = 'success') {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.style.background = type === 'success' ? '#10b981' : 
+                                          type === 'warning' ? '#f59e0b' : '#ef4444';
+            notification.classList.add('show');
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+
+        // Click outside modal to close
+        window.onclick = (event) => {
+            if (event.target.classList.contains('modal')) {
+                event.target.classList.remove('active');
+            }
+        };
+
+        // Initialize
+        updateWordCount();
+    </script>
+</body>
+</html>
